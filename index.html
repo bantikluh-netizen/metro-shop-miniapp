@@ -1,1 +1,136 @@
 
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>METRO SHOP 24/7</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#10131c;color:#fff;font-family:Arial,sans-serif;padding:18px}
+header{text-align:center;padding:18px 0}
+h1{color:#70e0ff;margin:5px;font-size:29px}
+.sub{color:#aab5c7}
+input,select{width:100%;padding:14px;margin:8px 0;background:#202637;color:white;border:1px solid #39465e;border-radius:12px;font-size:16px}
+.products{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.item,.cart{background:#1b2231;border:1px solid #303b50;border-radius:15px;padding:13px}
+.item h3{font-size:15px;min-height:36px;margin:5px 0}
+.price{color:#70e0ff;font-weight:bold;margin:10px 0}
+button{border:0;border-radius:10px;padding:11px;background:#65d8f5;color:#10131c;font-weight:bold;font-size:15px}
+.add{width:100%}
+section{margin-top:22px}
+h2{font-size:20px}
+.cartline{display:flex;justify-content:space-between;gap:8px;padding:9px 0;border-bottom:1px solid #39465e}
+.qty button{padding:5px 10px;margin:0 3px}
+.total{font-size:20px;font-weight:bold;margin:15px 0}
+#uidbox{display:none}
+.order{width:100%;padding:16px;background:#42d392;font-size:17px}
+.note{font-size:13px;color:#aab5c7;line-height:1.5}
+</style>
+</head>
+<body>
+<header>
+<h1>METRO SHOP</h1>
+<div class="sub">24/7 • Магазин игровых предметов</div>
+</header>
+
+<input id="search" placeholder="🔎 Поиск товара..." oninput="render()">
+<div class="products" id="products"></div>
+
+<section class="cart">
+<h2>🛒 Корзина</h2>
+<div id="cart"></div>
+<div class="total" id="total">Итого: 0 ₽</div>
+</section>
+
+<section>
+<h2>📦 Оформление заказа</h2>
+<input id="buyer" placeholder="Твоё имя или ник">
+<select id="country" onchange="paymentInfo()">
+<option value="">Выбери страну</option>
+<option value="Россия">Россия</option>
+<option value="Украина">Украина</option>
+<option value="Другая страна">Другая страна</option>
+</select>
+<div id="uidbox">
+<input id="uid" placeholder="PUBG Mobile UID">
+</div>
+<div class="note" id="payment"></div>
+<button class="order" onclick="sendOrder()">ОФОРМИТЬ ЗАКАЗ В TELEGRAM</button>
+<p class="note">После нажатия откроется переписка с продавцом. Проверь заказ и нажми «Отправить» в Telegram.</p>
+</section>
+
+<script>
+const products=[
+["MK14 ВК — Высшие обвесы",15,"Оружие"],
+["MK14 КБ — Высшие обвесы",8,"Оружие"],
+["MK14 СФ — Высшие обвесы",7,"Оружие"],
+["MG3 / P90 ВК",10,"Оружие"],
+["MG3 / P90 КБ",10,"Оружие"],
+["MG3 / P90 СФ",10,"Оружие"],
+["AMR / AWM ВК — Высшие обвесы",25,"Оружие"],
+["AMR / AWM СФ — Высшие обвесы",15,"Оружие"],
+["Обычное — 6 шлем",8,"Комплекты"],
+["Обычное — 6 броня — С пластиной",10,"Комплекты"],
+["Обычное — 6 рюкзак",7,"Комплекты"],
+["Кобра — 6 шлем",7,"Комплекты"],
+["Кобра — 6 броня — С пластиной",9,"Комплекты"],
+["Кобра — 6 рюкзак",7,"Комплекты"],
+["Стальной фронт — 6 шлем",7,"Комплекты"],
+["Стальной фронт — 6 броня — С пластиной",10,"Комплекты"],
+["Стальной фронт — 6 рюкзак",7,"Комплекты"],
+["Тепловизор",10,"Прочее"],
+["Чёрное письмо",8,"Прочее"],
+["Рад. пластина",3,"Прочее"]
+];
+let cart={};
+function render(){
+ const q=document.getElementById("search").value.toLowerCase();
+ document.getElementById("products").innerHTML=products.map((p,i)=>
+ ({p,i})).filter(x=>x.p[0].toLowerCase().includes(q)).map(({p,i})=>
+ `<div class="item"><h3>${p[0]}</h3><div class="price">${p[1]} ₽</div><button class="add" onclick="add(${i})">Добавить</button></div>`
+ ).join("");
+ showCart();
+}
+function add(i){cart[i]=(cart[i]||0)+1;showCart()}
+function change(i,n){cart[i]+=n;if(cart[i]<=0)delete cart[i];showCart()}
+function showCart(){
+ let html="",sum=0;
+ Object.keys(cart).forEach(k=>{
+ let i=Number(k),p=products[i],n=cart[k];sum+=p[1]*n;
+ html+=`<div class="cartline"><span>${p[0]}<br>${p[1]} ₽ × ${n}</span><span class="qty"><button onclick="change(${i},-1)">−</button>${n}<button onclick="change(${i},1)">+</button></span></div>`;
+ });
+ document.getElementById("cart").innerHTML=html||"Корзина пока пуста";
+ document.getElementById("total").textContent="Итого: "+sum+" ₽";
+}
+function paymentInfo(){
+ const c=document.getElementById("country").value;
+ document.getElementById("uidbox").style.display=c==="Украина"?"block":"none";
+ let t="";
+ if(c==="Россия")t="Оплата: перевод на СберКарту. Реквизиты продавец сообщит в личной переписке.";
+ if(c==="Украина")t="Оплата: PUBG Mobile UC. Количество и способ передачи согласуйте с продавцом в Telegram.";
+ if(c==="Другая страна")t="Оплата и условия согласуются с продавцом в Telegram.";
+ document.getElementById("payment").textContent=t;
+}
+function sendOrder(){
+ if(!Object.keys(cart).length){alert("Сначала добавь товары в корзину");return}
+ const buyer=document.getElementById("buyer").value.trim();
+ const country=document.getElementById("country").value;
+ if(!buyer||!country){alert("Укажи имя и страну");return}
+ const uid=document.getElementById("uid").value.trim();
+ if(country==="Украина"&&!uid){alert("Укажи PUBG Mobile UID");return}
+ let sum=0,lines=[];
+ Object.keys(cart).forEach(k=>{
+ const p=products[Number(k)],n=cart[k];sum+=p[1]*n;
+ lines.push(p[0]+" × "+n+" = "+(p[1]*n)+" ₽");
+ });
+ const message="Здравствуйте! Хочу оформить заказ в METRO SHOP.\n\n"+lines.join("\n")+"\n\nИтого: "+sum+" ₽\nИмя/ник: "+buyer+"\nСтрана: "+country+(uid?"\nPUBG UID: "+uid:"")+"\n\nПрошу уточнить оплату и получение заказа.";
+ location.href="https://t.me/konkretika3?text="+encodeURIComponent(message);
+}
+if(window.Telegram?.WebApp){Telegram.WebApp.ready();Telegram.WebApp.expand()}
+render();
+</script>
+</body>
+</html>
+
